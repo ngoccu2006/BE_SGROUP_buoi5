@@ -1,0 +1,46 @@
+
+services:
+  # 🐳 1. CONTAINER CHỨA DATABASE (POSTGRESQL ĐỘC LẬP)
+  postgres_db:
+    image: postgres:15-alpine # Sử dụng bản Postgres 15 nhẹ và cực kỳ ổn định
+    container_name: node_postgres_container
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: cu17102006 # Thay bằng password của ní
+      POSTGRES_DB: user_management
+    ports:
+      - "5432:5432" # Thông cổng 5432 từ container ra máy thật để pgAdmin 4 kết nối được
+    volumes:
+      - pgdata:/var/lib/postgresql/data # Lưu dữ liệu vào ổ đĩa ảo để khi tắt container không bị mất data
+    networks:
+      - app-network
+
+  # 🐳 2. CONTAINER CHỨA APP NODE.JS CỦA ANH EM MÌNH
+  node_app:
+    build: . # Bảo Docker đọc file 'Dockerfile' tại thư mục hiện tại để tự build image
+    container_name: node_express_app
+    ports:
+      - "3000:3000" # Thông cổng 3000 để ní vào trình duyệt xem Swagger UI và Postman quẩy
+    environment:
+      # LƯU Ý CHÍ MẠNG: Thay vì điền 'localhost', ta điền chính xác tên service 'postgres_db' 
+      # để hai container tự tìm thấy nhau trong mạng nội bộ của Docker!
+      DB_HOST: postgres_db 
+      DB_USER: postgres
+      DB_PASSWORD: cu17102006
+      DB_NAME: user_management
+      DB_PORT: 5432
+      JWT_SECRET: 123456
+      JWT_EXPIRES_IN: 1d
+      PORT: 3000
+    depends_on:
+      - postgres_db # Dặn Docker phải bật DB lên chạy ngon lành trước rồi mới được bật App Node.js lên sau
+    networks:
+      - app-network
+
+# Định nghĩa các tài nguyên dùng chung
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
